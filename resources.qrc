@@ -1,0 +1,20 @@
+<RCC>
+    <qresource prefix="/img">
+        <file alias="OpenFileIcon">img/fileopen.png</file>
+        <file alias="SaveFileIcon">img/filesave.png</file>
+        <file alias="NewFileIcon">img/new.png</file>
+        <file alias="ExitIcon">img/exit.png</file>
+        <file alias="SaveAllIcon">img/saveAll.png</file>
+        <file alias="PrintIcon">img/print.png</file>
+        <file alias="UndoIcon">img/undo.png</file>
+        <file alias="CopyIcon">img/copy.png</file>
+        <file alias="CutIcon">img/cut.png</file>
+        <file alias="PasteIcon">img/paste.png</file>
+        <file alias="PropertiesIcon">img/properties.png</file>
+        <file alias="RedoIcon">img/redo.png</file>
+        <file alias="BreakIcon">img/break.png</file>
+        <file alias="MakeIcon">img/make.png</file>
+        <file alias="RebuildIcon">img/rebuild.png</file>
+        <file alias="RunIcon">img/run.png</file>
+    </qresource>
+</RCC>
