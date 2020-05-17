@@ -16,5 +16,15 @@
         <file alias="MakeIcon">img/make.png</file>
         <file alias="RebuildIcon">img/rebuild.png</file>
         <file alias="RunIcon">img/run.png</file>
+        <file alias="FindIcon">img/find.png</file>
+        <file alias="NextIcon">img/next.png</file>
+        <file alias="PrevIcon">img/prev.png</file>
+        <file alias="BookmarkIcon">img/bookmark.png</file>
+        <file alias="BookmarkListIcon">img/bookmarkList.png</file>
+        <file alias="BookmarkNextIcon">img/bookmarkNext.png</file>
+        <file alias="BookmarkPrevIcon">img/bookmarkPrev.png</file>
+        <file alias="BookmarkToggleIcon">img/bookmarkToggle.png</file>
+        <file alias="DockHorizontalIcon">img/dockHorizontal.png</file>
+        <file alias="DockVerticalIcon">img/dockVertical.png</file>
     </qresource>
 </RCC>

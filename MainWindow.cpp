@@ -27,35 +27,42 @@
 -------------------------------------------------------------------*/
 #include <QApplication>
 #include <QMenuBar>
+#include <QStatusBar>
 #include <QSettings>
+#include <QLabel>
 #include <QIcon>
+#include <QDebug>
 #include "MainWindow.h"
 #include "Shared/Shared.h"
+#include "Workspace/Workspace.h"
+#include "Sidekick/Sidekick.h"
+#include "Bottomkick/Bottomkick.h"
 
 /*------- local constants:
 -------------------------------------------------------------------*/
 const char* const MainWindow::MenuFile      = "File";
 const char* const MainWindow::MenuEdit      = "Edit";
-const char* const MainWindow::MenuSearch    = "Search";
+const char* const MainWindow::MenuTools     = "Tools";
 const char* const MainWindow::MenuProject   = "Project";
 const char* const MainWindow::MenuDebugger  = "Debugger";
 const char* const MainWindow::MenuDocuments = "Documents";
 const char* const MainWindow::MenuHelp      = "Help";
 
-/********************************************************************
-*                            MainWindow                        ctor *
-********************************************************************/
+//*******************************************************************
+//                            MainWindow                        CTOR
+//*******************************************************************
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     // File menu subitems
-    , _openFileAction         (new QAction(QIcon(":/img/OpenFileIcon"), "Open file ..."))
-    , _newFileAction          (new QAction(QIcon(":/img/NewFileIcon"), "New file"))
-    , _saveFileAction         (new QAction(QIcon(":/img/SaveFileIcon"), "Save file"))
-    , _saveAsAction           (new QAction("Save as ..."))
-    , _saveAllAction          (new QAction(QIcon(":/img/SaveAllIcon"), "Save all..."))
+    , _openFileAction         (new QAction(QIcon(":/img/OpenFileIcon"), "Open File ..."))
+    , _newFileAction          (new QAction(QIcon(":/img/NewFileIcon"), "New File"))
+    , _saveFileAction         (new QAction(QIcon(":/img/SaveFileIcon"), "Save File"))
+    , _saveAsAction           (new QAction("Save As ..."))
+    , _saveAllAction          (new QAction(QIcon(":/img/SaveAllIcon"), "Save All..."))
+    , _lastOpenedFilesMenu    (new QMenu("Last Opened Files"))
+    , _lastOpenedProjectsMenu (new QMenu("Last Opened Projects"))
+    , _propertiesAction       (new QAction(QIcon(":/img/PropertiesIcon"), "Settings"))
     , _printAction            (new QAction(QIcon(":/img/PrintIcon"), "Print ..."))
-    , _lastOpenedFilesMenu    (new QMenu("Last opened files"))
-    , _lastOpenedProjectsMenu (new QMenu("Last opened projects"))
     , _quitAction             (new QAction(QIcon(":/img/ExitIcon"), "Quit"))
     // Edit menu subitems
     , _undoAction             (new QAction(QIcon(":/img/UndoIcon"), "Undo"))
@@ -64,8 +71,14 @@ MainWindow::MainWindow(QWidget *parent)
     , _copyAction             (new QAction(QIcon(":/img/CopyIcon"), "Copy"))
     , _pasteAction            (new QAction(QIcon(":/img/PasteIcon"), "Paste"))
     , _deleteAction           (new QAction("Delete"))
-    , _selectAllAction        (new QAction("Select all"))
-    , _propertiesAction       (new QAction(QIcon(":/img/PropertiesIcon"), "Settings"))
+    , _selectAllAction        (new QAction("Select All"))
+    // Tools menu subitems
+    , _findAction             (new QAction(QIcon(":/img/FindIcon"), "Find"))
+    , _bookmarkNextAction     (new QAction(QIcon(":/img/BookmarkNextIcon"), "Bookmark Next"))
+    , _bookmarkPrevAction     (new QAction(QIcon(":/img/BookmarkPrevIcon"), "Bookmark Previous"))
+    , _bookmarkToggleAction   (new QAction(QIcon(":/img/BookmarkIcon"), "Bookmark Toggle"))
+    , _bookmarkAllAction      (new QAction(QIcon(":/img/BookmarkToggleIcon"), "Bookmark List"))
+    , _gotoLineAction         (new QAction("Goto Line"))
     // Project menu subitems
     , _openProjectAction      (new QAction("Open project"))
     , _closeProjectAction     (new QAction("Close project"))
@@ -75,8 +88,20 @@ MainWindow::MainWindow(QWidget *parent)
     , _testAction             (new QAction("Test"))
     , _rebuildAction          (new QAction(QIcon(":/img/RebuildIcon"), "Rebuild"))
     , _breakAction            (new QAction(QIcon(":/img/BreakIcon"), "Break"))
+    // Status Bar items
+    , _currentColumnValue     (new QLabel)
+    , _currentRowValue        (new QLabel)
+    // Working widgets
+    , _workspace              (new Workspace(this))
+    , _sidekick               (new Sidekick(this))
+    , _bottomkick             (new Bottomkick(this))
 {
     createMenu();
+    createStatusBar();
+
+    setCentralWidget(_workspace);
+    addDockWidget(Qt::LeftDockWidgetArea, _sidekick);
+    addDockWidget(Qt::BottomDockWidgetArea, _bottomkick);
 }
 
 /********************************************************************
@@ -92,12 +117,7 @@ void MainWindow::createMenu() {
     QMenuBar* const bar = menuBar();
     bar->addMenu(createFileMenu());
     bar->addMenu(createEditMenu());
-
-
-    if (auto action = bar->addMenu(new QMenu(MenuSearch)); action) {
-
-    }
-
+    bar->addMenu(createToolsMenu());
     bar->addMenu(createProjectMenu());
 
     if (auto action = bar->addMenu(new QMenu(MenuDebugger)); action) {
@@ -109,7 +129,6 @@ void MainWindow::createMenu() {
     if (auto action = bar->addMenu(new QMenu(MenuHelp)); action) {
 
     }
-
 }
 
 /********************************************************************
@@ -142,14 +161,20 @@ QMenu* MainWindow::createFileMenu() const {
         menu->addAction(_saveAllAction);
     }
     menu->addSeparator();
+    menu->addMenu(_lastOpenedFilesMenu);
+    menu->addMenu(_lastOpenedProjectsMenu);
+    menu->addSeparator();
+    {
+        _propertiesAction->setShortcut(QKeySequence::Preferences);
+        connect(_propertiesAction, &QAction::triggered, this, &MainWindow::propertiesHandler);
+        menu->addAction(_propertiesAction);
+    }
+
     {
         _printAction->setShortcut(QKeySequence::Print);
         connect(_printAction, &QAction::triggered, this, &MainWindow::printHandler);
         menu->addAction(_printAction);
     }
-    menu->addSeparator();
-    menu->addMenu(_lastOpenedFilesMenu);
-    menu->addMenu(_lastOpenedProjectsMenu);
     menu->addSeparator();
     {
         _quitAction->setShortcut(QKeySequence::Quit);
@@ -251,14 +276,71 @@ QMenu* MainWindow::createEditMenu() const {
         connect(_selectAllAction, &QAction::triggered, this, &MainWindow::selectAllHandler);
         menu->addAction(_selectAllAction);
     }
+    return menu;
+}
+
+/********************************************************************
+*                          createToolsMenu                  private *
+********************************************************************/
+QMenu* MainWindow::createToolsMenu() const {
+    QMenu* menu = new QMenu(MenuTools);
+    {
+        _findAction->setShortcut(QKeySequence::Find);
+        connect(_findAction, &QAction::triggered, this, &MainWindow::findHandler);
+        menu->addAction(_findAction);
+    }
     menu->addSeparator();
     {
-        connect(_propertiesAction, &QAction::triggered, this, &MainWindow::propertiesHandler);
-        menu->addAction(_propertiesAction);
+        _bookmarkNextAction->setShortcut(Qt::CTRL | Qt::Key_Down);
+        connect(_bookmarkNextAction, &QAction::triggered, this, &MainWindow::bookmarkNextHandler);
+        menu->addAction(_bookmarkNextAction);
+    }
+    {
+        _bookmarkPrevAction->setShortcut(Qt::CTRL | Qt::Key_Up);
+        connect(_bookmarkPrevAction, &QAction::triggered, this, &MainWindow::bookmarkPrevHandler);
+        menu->addAction(_bookmarkPrevAction);
+    }
+    {
+        _bookmarkToggleAction->setShortcut(Qt::CTRL | Qt::Key_B);
+        connect(_bookmarkToggleAction, &QAction::triggered, this, &MainWindow::bookmarkToggleHandler);
+        menu->addAction(_bookmarkToggleAction);
+    }
+    {
+        _bookmarkAllAction->setShortcut(Qt::CTRL | Qt::ALT | Qt::Key_B);
+        connect(_bookmarkAllAction, &QAction::triggered, this, &MainWindow::bookmarkAllHandler);
+        menu->addAction(_bookmarkAllAction);
+    }
+    menu->addSeparator();
+    {
+        _gotoLineAction->setShortcut(Qt::CTRL | Qt::Key_G);
+        connect(_gotoLineAction, &QAction::triggered, this, &MainWindow::gotoLineHandler);
+        menu->addAction(_gotoLineAction);
     }
     return menu;
 }
 
+void MainWindow::createStatusBar() {
+    const QFontMetrics fm(statusBar()->font());
+    const int dx = fm.horizontalAdvance("9999");
+
+    auto const columnText = new QLabel("Col:");
+    columnText->setIndent(2);
+    statusBar()->addPermanentWidget(columnText);
+
+    _currentColumnValue->setMinimumWidth(dx);
+    _currentColumnValue->setMaximumWidth(dx);
+    _currentColumnValue->setAlignment(Qt::AlignCenter);
+    statusBar()->addPermanentWidget(_currentColumnValue);
+
+    auto const rowText = new QLabel("Row:");
+    rowText->setIndent(2);
+    statusBar()->addPermanentWidget(rowText);
+
+    _currentRowValue->setMinimumWidth(dx);
+    _currentRowValue->setMaximumWidth(dx);
+    _currentRowValue->setAlignment(Qt::AlignCenter);
+    statusBar()->addPermanentWidget(_currentRowValue);
+}
 
 /********************************************************************
 *                             showEvent                     private *
@@ -317,6 +399,26 @@ void MainWindow::pasteHandler() {}
 void MainWindow::deleteHandler() {}
 void MainWindow::selectAllHandler() {}
 void MainWindow::propertiesHandler() {}
+
+// Tools menu subitems
+void MainWindow::findHandler() {
+    qDebug() << "MainWindow::findReplaceHandler";
+}
+void MainWindow::bookmarkNextHandler() {
+    qDebug() << "MainWindow::bookmarkNextHandler";
+}
+void MainWindow::bookmarkPrevHandler() {
+    qDebug() << "MainWindow::bookmarkPrevHandler";
+}
+void MainWindow::bookmarkToggleHandler() {
+    qDebug() << "MainWindow::bookmarkToggleHandler";
+}
+void MainWindow::bookmarkAllHandler() {
+    qDebug() << "MainWindow::bookmarkAllHandler";
+}
+void MainWindow::gotoLineHandler() {
+    qDebug() << "MainWindow::gotoLineHandler";
+}
 
 void MainWindow::openProjectHandler() {}
 void MainWindow::closeProjectHandler() {}

@@ -17,19 +17,27 @@ DEFINES += QT_DEPRECATED_WARNINGS
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
 SOURCES += \
+    Bottomkick/Bottomkick.cpp \
     Shared/SQLite/Field.cpp \
     Shared/SQLite/SQLite.cpp \
     Shared/SQLite/Statement.cpp \
     Shared/Shared.cpp \
+    Sidekick/ProjectTab.cpp \
+    Sidekick/Sidekick.cpp \
+    Workspace/Workspace.cpp \
     main.cpp \
     MainWindow.cpp
 
 HEADERS += \
+    Bottomkick/Bottomkick.h \
     MainWindow.h \
     Shared/SQLite/Field.h \
     Shared/SQLite/SQLite.h \
     Shared/SQLite/Statement.h \
-    Shared/Shared.h
+    Shared/Shared.h \
+    Sidekick/ProjectTab.h \
+    Sidekick/Sidekick.h \
+    Workspace/Workspace.h
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin
